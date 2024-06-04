@@ -36,7 +36,7 @@ class BottleOpen(TwoArmEnv):
         placement_initializer=None,
         has_renderer=False,
         has_offscreen_renderer=True,
-        render_camera="sideview",
+        render_camera="main_cam",  # ('frontview', 'birdview', 'agentview', 'sideview', 'tableview', 'robot0_robotview', 'robot0_eye_in_hand', 'robot1_robotview', 'robot1_eye_in_hand')
         render_collision_mesh=False,
         render_visual_mesh=True,
         render_gpu_device_id=-1,
@@ -44,7 +44,7 @@ class BottleOpen(TwoArmEnv):
         horizon=1000,
         ignore_done=False,
         hard_reset=True,
-        camera_names="tableview",
+        camera_names="main_cam",
         camera_heights=256,
         camera_widths=256,
         camera_depths=False,
@@ -131,6 +131,8 @@ class BottleOpen(TwoArmEnv):
         cube_height = self.sim.data.body_xpos[self.cube_body_id][2]
         table_height = self.model.mujoco_arena.table_offset[2]
 
+        # print("cube location: ",self.sim.data.body_xpos[self.cube_body_id])
+        
         # Check if the cube is lifted 20 cm above the table height
         return cube_height > table_height + 0.20
 
@@ -166,14 +168,14 @@ class BottleOpen(TwoArmEnv):
         xpos[0] += -0.2
         xpos = tuple(xpos)
         self.robots[0].robot_model.set_base_xpos(xpos)
-        print("pos:", xpos)
+        # print("pos:", xpos)
         
         xpos = self.robots[1].robot_model.base_xpos_offset["table"](self.table_full_size[0])
         xpos = list(xpos)
         xpos[0] += 1.4 
         xpos = tuple(xpos)
         self.robots[1].robot_model.set_base_xpos(xpos)
-        print("pos:", xpos)
+        # print("pos:", xpos)
         # Define the rotation matrix for 180 degrees about the z-axis
         rotation_matrix = np.array([0,0,np.pi])
         
@@ -191,11 +193,11 @@ class BottleOpen(TwoArmEnv):
             table_offset=self.table_offset,
         )
 
+        mujoco_arena.set_camera("main_cam", np.array([0, 2, 3]), np.array([0, 0, 0.38268343, 0.92387953]))#
+
         # Arena always gets set to zero origin
         mujoco_arena.set_origin((0, 0, 0))
         
-        mujoco_arena.set_camera("tableview", np.array([0,-6,0]), np.array([1,0,-1,0]))#
-
         # initialize objects of interest
         tex_attrib = {
             "type": "cube",
@@ -214,8 +216,8 @@ class BottleOpen(TwoArmEnv):
         )
         self.cube = BoxObject(
             name="cube",
-            size_min=[0.040, 0.040, 0.040],  # [0.015, 0.015, 0.015],
-            size_max=[0.044, 0.044, 0.044],  # [0.018, 0.018, 0.018])
+            size_min=[0.115, 0.115, 0.115],  # [0.015, 0.015, 0.015],
+            size_max=[0.118, 0.118, 0.118],  # [0.018, 0.018, 0.018],
             rgba=[1, 0, 0, 1],
             material=redwood,
         )
@@ -227,15 +229,16 @@ class BottleOpen(TwoArmEnv):
         else:
             self.placement_initializer = UniformRandomSampler(
                 name="ObjectSampler",
-                mujoco_objects=self.cube,
-                x_range=[-0.03, 0.03],
-                y_range=[-0.03, 0.03],
+                mujoco_objects=[self.cube],
+                x_range=[1.95, 2.05],  # Small range around 2 for some randomization
+                y_range=[1.95, 2.05],  # Small range around 2 for some randomization
                 rotation=None,
-                ensure_object_boundary_in_range=False,
+                ensure_object_boundary_in_range=True,
                 ensure_valid_placement=True,
-                reference_pos=self.table_offset,
-                z_offset=0.01,
+                z_offset=0.1  # Adjust based on the actual height of the table and object
             )
+
+            # print("[line 241]table offset: ",self.table_offset)
 
         # task includes arena, robot, and objects of interest
         self.model = ManipulationTask(
@@ -243,7 +246,7 @@ class BottleOpen(TwoArmEnv):
             mujoco_robots=[robot.robot_model for robot in self.robots],
             mujoco_objects=self.cube,
         )
-
+    
     def _setup_references(self):
         """
         Sets up references to important components. A reference is typically an
@@ -298,7 +301,17 @@ class BottleOpen(TwoArmEnv):
         super()._reset_internal()
 
         # Sample a new goal
-        self.placement_initializer.sample()
+        # self.placement_initializer.sample()
+        # print("New cube position:", self.sim.data.body_xpos[self.cube_body_id])
+
+        addr = self.sim.model.get_joint_qpos_addr("cube_joint0")
+        if isinstance(addr, tuple):  
+            qpos_index = addr[0]
+            table_height = self.table_offset[2] + 0.05  
+            new_qpos = np.concatenate([[self.table_offset[0], self.table_offset[1], table_height], [1, 0, 0, 0]])  
+            self.sim.data.qpos[qpos_index:qpos_index + 7] = new_qpos
+            self.sim.forward() 
+            print("New cube position:", self.sim.data.body_xpos[self.cube_body_id])
 
     def visualize(self, vis_settings):
         """
