@@ -23,7 +23,7 @@ class BottleOpen(TwoArmEnv):
     def __init__(
         self,
         robots,
-        env_configuration="default",
+        env_configuration="single-arm-opposed",
         controller_configs=None,
         gripper_types="default",
         initialization_noise="default",
@@ -36,7 +36,7 @@ class BottleOpen(TwoArmEnv):
         placement_initializer=None,
         has_renderer=False,
         has_offscreen_renderer=True,
-        render_camera="frontview",
+        render_camera="sideview",
         render_collision_mesh=False,
         render_visual_mesh=True,
         render_gpu_device_id=-1,
@@ -44,7 +44,7 @@ class BottleOpen(TwoArmEnv):
         horizon=1000,
         ignore_done=False,
         hard_reset=True,
-        camera_names="agentview",
+        camera_names="tableview",
         camera_heights=256,
         camera_widths=256,
         camera_depths=False,
@@ -162,7 +162,27 @@ class BottleOpen(TwoArmEnv):
 
         # Adjust base pose accordingly
         xpos = self.robots[0].robot_model.base_xpos_offset["table"](self.table_full_size[0])
+        xpos = list(xpos)
+        xpos[0] += -0.2
+        xpos = tuple(xpos)
         self.robots[0].robot_model.set_base_xpos(xpos)
+        print("pos:", xpos)
+        
+        xpos = self.robots[1].robot_model.base_xpos_offset["table"](self.table_full_size[0])
+        xpos = list(xpos)
+        xpos[0] += 1.4 
+        xpos = tuple(xpos)
+        self.robots[1].robot_model.set_base_xpos(xpos)
+        print("pos:", xpos)
+        # Define the rotation matrix for 180 degrees about the z-axis
+        rotation_matrix = np.array([0,0,np.pi])
+        
+        # Apply this rotation to the robot's base orientation
+        self.robots[1].robot_model.set_base_ori(rotation_matrix)
+        
+        # # Access and print the base position and orientation of the robot
+        # base_pos = self.sim.data.body_xpos[self.robots[1].robot_model.root_body]
+        # base_quat = self.sim.data.body_xquat[self.robots[1].robot_model.root_body]
 
         # load model for table top workspace
         mujoco_arena = TableArena(
@@ -172,7 +192,9 @@ class BottleOpen(TwoArmEnv):
         )
 
         # Arena always gets set to zero origin
-        mujoco_arena.set_origin([0, 0, 0])
+        mujoco_arena.set_origin((0, 0, 0))
+        
+        mujoco_arena.set_camera("tableview", np.array([0,-6,0]), np.array([1,0,-1,0]))#
 
         # initialize objects of interest
         tex_attrib = {
@@ -192,8 +214,8 @@ class BottleOpen(TwoArmEnv):
         )
         self.cube = BoxObject(
             name="cube",
-            size_min=[0.020, 0.020, 0.020],  # [0.015, 0.015, 0.015],
-            size_max=[0.022, 0.022, 0.022],  # [0.018, 0.018, 0.018])
+            size_min=[0.040, 0.040, 0.040],  # [0.015, 0.015, 0.015],
+            size_max=[0.044, 0.044, 0.044],  # [0.018, 0.018, 0.018])
             rgba=[1, 0, 0, 1],
             material=redwood,
         )

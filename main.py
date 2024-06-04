@@ -4,7 +4,7 @@ from BottleOpen import BottleOpen
 
 # Create the environment
 env = BottleOpen(
-    robots=["Panda", "Sawyer"],  # Specifying two robot arms
+    robots=["Sawyer", "Sawyer"],  # Specifying two robot arms
     use_camera_obs=False,  # Disable camera observations
     has_renderer=True,  # Enable on-screen rendering
     has_offscreen_renderer=False,  # Disable off-screen rendering
