@@ -94,6 +94,16 @@ class BottleOpen(TwoArmEnv):
             renderer_config=renderer_config,
         )
 
+    # def step(self, action):
+    #     # Apply action and step the simulator
+    #     obs, reward, done, info, _ = super().step(action)  # Assuming super() handles the Mujoco step and basic observation gathering
+
+    #     # Retrieve updated observables
+    #     observables_dict = self._setup_observables()
+
+    #     # Return the modified tuple including observables
+    #     return obs, reward, done, info, observables_dict
+
     def reward(self, action=None):
         """
         Reward function for the task.
@@ -292,6 +302,7 @@ class BottleOpen(TwoArmEnv):
                     sensor=s,
                     sampling_rate=self.control_freq,
                 )
+                
         return observables
 
     def _reset_internal(self):

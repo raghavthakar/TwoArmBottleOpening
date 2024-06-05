@@ -1,6 +1,7 @@
 import robosuite as suite
 from robosuite.wrappers import GymWrapper
 from BottleOpen import BottleOpen
+import numpy as np
 
 # Create the environment
 env = BottleOpen(
@@ -24,11 +25,18 @@ total_reward = 0.0
 while not done:
     # Sample a random action
     action = env.action_space.sample()
-    
+    action = np.zeros(16)
+    # 0-6 are joint angles
+    # 7 is the gripper
+    # deltas for each actuaator
+
     # Take a step in the environment
     result = env.step(action)
-    obs, reward, done, _ = result[:4]  # Unpack the first four values
+    obs, obs_dict, reward, done, _, info = result  # Unpack the first four values
     
+    # print("oBS: ", [0 if abs(o) < 0.01 else float(o) for o in obs])
+    print(obs_dict)
+
     # Accumulate reward
     total_reward += reward
     
